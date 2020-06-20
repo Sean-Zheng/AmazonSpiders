@@ -74,8 +74,6 @@ class AppWindows(QWidget):
         keywords_layout.addWidget(keywords_label)
         keywords_layout.addWidget(self.keywords_editer)
 
-        # control_layout.addWidget(QLabel('请用;分割搜索关键字'))
-
         select_widget = QWidget()
         select_layout = QHBoxLayout(select_widget)
         self.jp_amazon = QRadioButton('日本亚马逊')
