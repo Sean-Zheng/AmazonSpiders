@@ -1,5 +1,5 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QLabel, QRadioButton, QDesktopWidget, QHBoxLayout, QVBoxLayout, QTabWidget, QTextBrowser
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QLabel, QRadioButton, QDesktopWidget, QHBoxLayout, QVBoxLayout, QFormLayout, QTabWidget, QTextBrowser
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import pyqtSlot, Qt
 
@@ -21,6 +21,31 @@ def start_crawl(search, website):
     else:
         return
     process.start()
+
+
+class Commodity(QWidget):
+    def __init__(self, name, page, page_url, url):
+        super().__init__()
+        main_layout = QHBoxLayout(self)
+        name_label = QLabel()
+        name_label.setText(name)
+        page_label = QLabel()
+        page_label.setText(page)
+
+        page_url_label = QLabel()
+        page_url_label.setText('<a href="{}">打开页面链接</a>'.format(page_url))
+        page_url_label.setOpenExternalLinks(True)
+        page_url_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
+
+        url_label = QLabel()
+        url_label.setText('<a href="{}">打开商品链接</a>'.format(url))
+        url_label.setOpenExternalLinks(True)
+        url_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
+        main_layout.addWidget(name_label)
+        main_layout.addWidget(page_label)
+        main_layout.addWidget(url_label)
+        self.show()
+    pass
 
 
 class AppWindows(QWidget):
@@ -50,7 +75,9 @@ class AppWindows(QWidget):
     # 控制窗口控件
     def __init_control_widget(self):
         self.control_widget = QWidget()
-        control_layout = QVBoxLayout(self.control_widget)
+        control_layout = QFormLayout(self.control_widget)
+        control_layout.setFormAlignment(Qt.AlignCenter)
+        control_layout.setSpacing(30)
         self.control_widget.setFixedWidth(400)
         # self.control_widget.setStyleSheet('QWidget{background-color:blue}')
         self.main_layout.addWidget(self.control_widget, alignment=Qt.AlignLeft)
@@ -88,8 +115,8 @@ class AppWindows(QWidget):
         self.clean_btn.clicked.connect(self.__clean)
         self.search_btn = QPushButton('搜索')
         self.search_btn.clicked.connect(self.__search)
-        button_layout.addWidget(self.search_btn)
         button_layout.addWidget(self.clean_btn)
+        button_layout.addWidget(self.search_btn)
 
         control_layout.addWidget(search_widget)
         control_layout.addWidget(keywords_widget)
@@ -116,11 +143,21 @@ class AppWindows(QWidget):
     # 结果窗口控件
     def __init_result_widget(self):
         self.result_widget = QWidget()
-        self.result_text = QTextBrowser(self.result_widget)
-        self.result_text.resize(793, 650)
+        self.result_layout = QFormLayout(self.result_widget)
+        self.result_layout.setFormAlignment(Qt.AlignTop)
+        # self.result_text = QTextBrowser(self.result_widget)
+        # self.result_text.resize(793, 650)
         # setStyleSheet("QTextBrowser{border-width:0;border-style:outset}");
-        self.result_text.setText('sdfadsfdsa')
+        # self.result_text.setText('sdfadsfdsa')
         self.show_widget.addTab(self.result_widget, "结果")
+
+        item1 = Commodity(
+            'asdf', '111', 'https://www.baidu.com', 'https://www.baidu.com')
+        item2 = Commodity(
+            'asdf', '111', 'https://www.baidu.com', 'https://www.baidu.com')
+
+        self.result_layout.addWidget(item1)
+        self.result_layout.addWidget(item2)
 
     @pyqtSlot()
     def __search(self):
