@@ -26,6 +26,7 @@ def start_crawl(search, website):
 class Commodity(QWidget):
     def __init__(self, name, page, page_url, url):
         super().__init__()
+
         main_layout = QHBoxLayout(self)
         name_label = QLabel()
         name_label.setText(name)
