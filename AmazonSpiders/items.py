@@ -13,6 +13,7 @@ class AmazonspidersItem(scrapy.Item):
     # name = scrapy.Field()
     name = scrapy.Field()
     page_index = scrapy.Field()
-    img = scrapy.Field()
-    url = scrapy.Field()
+    page_link = scrapy.Field()
+    commodity_img = scrapy.Field()
+    commodity_link = scrapy.Field()
     pass

@@ -8,6 +8,8 @@ def write_log(content, filename='./crawl.log'):
 
 
 def read_log(filename='./crawl.log'):
+    if not os.path.exists(filename):
+        return
     log_file = open(filename, 'r', encoding='utf-8')
     lines = log_file.readlines()
     log_file.close()

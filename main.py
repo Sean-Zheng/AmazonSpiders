@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QLabe
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import pyqtSlot, Qt
 
+
 import scrapy
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
@@ -10,6 +11,7 @@ from AmazonSpiders.spiders.Commodities import CommoditiesSpider
 from AmazonSpiders.spiders.JPAmazon import JpamazonSpider
 from AmazonSpiders.spiders.USAmazon import UsamazonSpider
 from AmazonSpiders.log import read_log
+from multiprocessing import Process
 
 
 def start_crawl(search, website):
@@ -167,9 +169,12 @@ class AppWindows(QWidget):
         # 判断选择的网址
         website = 'jp' if self.jp_amazon.isChecked() == True else 'us'
         print('开始搜索{}:{}'.format(search, website))
-        start_crawl(search, website)
-        print('OVER')
-        self.log_text.setText(read_log())
+        # start_crawl(search, website)
+        p = Process(target=start_crawl, args=(search, website))
+        p.start()
+        # https://blog.csdn.net/La_vie_est_belle/article/details/102539029
+        # 需要解决日志回调
+        # self.log_text.setText(read_log())
 
     @pyqtSlot()
     def __clean(self):
