@@ -2,15 +2,13 @@ import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QLabel, QRadioButton, QDesktopWidget, QHBoxLayout, QVBoxLayout, QFormLayout, QTabWidget, QTextBrowser
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import pyqtSlot, Qt, QThread
-
+from json import loads
 
 import scrapy
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
-from AmazonSpiders.spiders.Commodities import CommoditiesSpider
 from AmazonSpiders.spiders.JPAmazon import JpamazonSpider
 from AmazonSpiders.spiders.USAmazon import UsamazonSpider
-from AmazonSpiders.log import read_log
 from multiprocessing import Process, Manager
 
 
@@ -25,28 +23,48 @@ def start_crawl(search, website, Q):
     process.start()
 
 
+def filter_results():  # keywords: list
+    result_file = open('crawl.items', mode='r', encoding='utf-8')
+    results = result_file.readlines()
+    return_item = []
+    for item in results:
+        commodity = loads(item)
+        # for key in keywords:
+        #     if key not in commodity['name']:
+        #         continue
+        return_item.append(commodity)
+        pass
+    result_file.close()
+    return return_item
+
+
 class Commodity(QWidget):
     def __init__(self, name, page, page_url, url):
         super().__init__()
 
         main_layout = QHBoxLayout(self)
         name_label = QLabel()
-        name_label.setText(name)
+        name_label.setText('<a href="{}">{}</a>'.format(url, name))
+        name_label.setOpenExternalLinks(True)
+        name_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
+
         page_label = QLabel()
-        page_label.setText(page)
+        page_label.setText('<a href="{}">出现在第{}页</a>'.format(page_url, page))
+        page_label.setOpenExternalLinks(True)
+        page_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
 
-        page_url_label = QLabel()
-        page_url_label.setText('<a href="{}">打开页面链接</a>'.format(page_url))
-        page_url_label.setOpenExternalLinks(True)
-        page_url_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
+        # page_url_label = QLabel()
+        # page_url_label.setText('<a href="{}">{}</a>'.format(page_url))
+        # page_url_label.setOpenExternalLinks(True)
+        # page_url_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
 
-        url_label = QLabel()
-        url_label.setText('<a href="{}">打开商品链接</a>'.format(url))
-        url_label.setOpenExternalLinks(True)
-        url_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
+        # url_label = QLabel()
+        # url_label.setText('<a href="{}">{}</a>'.format(url))
+        # url_label.setOpenExternalLinks(True)
+        # url_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
         main_layout.addWidget(name_label)
         main_layout.addWidget(page_label)
-        main_layout.addWidget(url_label)
+        # main_layout.addWidget(url_label)
         self.show()
     pass
 
@@ -138,10 +156,10 @@ class AppWindows(QWidget):
         self.show_widget.setFixedWidth(800)
         # self.show_widget.setStyleSheet('QWidget{background-color:red}')
         self.main_layout.addWidget(self.show_widget, alignment=Qt.AlignLeft)
-        self.__init_result_widget()
         self.__init_log_widget()
-
+        self.__init_result_widget()
     # 日志窗口控件
+
     def __init_log_widget(self):
         self.log_widget = QWidget()
         self.log_text = QTextBrowser(self.log_widget)
@@ -159,13 +177,12 @@ class AppWindows(QWidget):
         # self.result_text.setText('sdfadsfdsa')
         self.show_widget.addTab(self.result_widget, "结果")
 
-        item1 = Commodity(
-            'asdf', '111', 'https://www.baidu.com', 'https://www.baidu.com')
-        item2 = Commodity(
-            'asdf', '111', 'https://www.baidu.com', 'https://www.baidu.com')
+        results = filter_results()
 
-        self.result_layout.addWidget(item1)
-        self.result_layout.addWidget(item2)
+        for i in range(0, len(results), 1):
+            commodity = Commodity(
+                results[i]['name'], results[i]['page_index'], results[i]['page_link'], results[i]['commodity_link'])
+            self.result_layout.addWidget(commodity)
 
     def closeEvent(self, event):
         if self.p:
@@ -177,6 +194,7 @@ class AppWindows(QWidget):
     def __search(self):
         # 获取所要搜索的商品名称
         search = self.search_editer.text()
+        self.keywords = self.keywords_editer.text().split(';')
         # 判断选择的网址
         website = 'jp' if self.jp_amazon.isChecked() == True else 'us'
         print('开始搜索{}:{}'.format(search, website))
@@ -208,7 +226,24 @@ class LogThread(QThread):
                 self.window.log_text.append(text)
 
                 if '爬取结束' == text:
-                    print('结束日志进程')
+                    # 开始写入结果
+                    # item1 = Commodity(
+                    #     'asdf', '111', 'https://www.baidu.com', 'https://www.baidu.com')
+                    # item2 = Commodity(
+                    #     'asdf', '111', 'https://www.baidu.com', 'https://www.baidu.com')
+
+                    # self.result_layout.addWidget(item1)
+                    # self.result_layout.addWidget(item2)
+                    # results = filter_results(self.window.keywords)
+                    # # for item in results:
+                    # #     commodity = Commodity(
+                    # #         item['name'], item['page_index'], item['page_link'], item['commodity_link'])
+                    # #     self.window.result_layout.addWidget(commodity)
+
+                    # for i in range(0, 10, 1):
+                    #     commodity = Commodity(
+                    #         results[i]['name'], results[i]['page_index'], results[i]['page_link'], results[i]['commodity_link'])
+                    #     self.window.result_layout.addWidget(commodity)
                     return
 
                 # 睡眠20毫秒，否则太快会导致闪退或者显示乱码
