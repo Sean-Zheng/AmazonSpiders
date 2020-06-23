@@ -8,13 +8,14 @@ class UsamazonSpider(scrapy.Spider):
     name = 'USAmazon'
     allowed_domains = ['amazon.com']
 
-    def __init__(self, search_key=None, *args, **kwargs):
+    def __init__(self, search_key=None, Q=None, *args, **kwargs):
         super(UsamazonSpider, self).__init__(*args, **kwargs)
-        remove_log()
+        self.Q = Q
         self.start_urls = [
             'https://www.amazon.com/s?k={}&ref=nb_sb_noss'.format(search_key)]
 
     def parse(self, response):
+        self.Q.put('开始爬取网址：{}'.format(response.url))
         commodity_xpath = '//div[@data-index]//div[@class="sg-col-inner"]/div[@class="a-section a-spacing-none"]//a[@class="a-link-normal a-text-normal"]'
         write_log('开始爬取网址：{}'.format(response.url))
         commodity_list = response.xpath(commodity_xpath)
@@ -31,12 +32,10 @@ class UsamazonSpider(scrapy.Spider):
                 commodity.xpath("./@href").get())
             yield item
         if not next_url or int(page_index) > 10:
-            if next_url is None and int(page_index) != 10:
-                write_log('下一页链接获取失败，程序退出')
+            if (next_url is None or next_url == '') and int(page_index) != 10:
+                self.Q.put('下一页链接获取失败，程序退出')
             elif page_index is None or page_index == '':
-                write_log('当前页数获取失败，程序退出')
-            else:
-                write_log('未知错误')
+                self.Q.put('当前页数获取失败，程序退出')
             return
         else:
             yield scrapy.Request(response.urljoin(next_url), callback=self.parse, dont_filter=True)

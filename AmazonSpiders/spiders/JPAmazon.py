@@ -10,7 +10,6 @@ class JpamazonSpider(scrapy.Spider):
 
     def __init__(self, search_key=None, Q=None, *args, **kwargs):
         super(JpamazonSpider, self).__init__(*args, **kwargs)
-        # remove_log()
         self.Q = Q
         self.start_urls = [
             'https://www.amazon.co.jp/s?k={}&__mk_ja_JP=カタカナ&ref=nb_sb_noss_2'.format(search_key)]
@@ -33,8 +32,6 @@ class JpamazonSpider(scrapy.Spider):
                 commodity.xpath("./span/a/@href").get())
             yield item
         if not next_url or int(page_index) > 10:
-            self.Q.put(page_index)
-            self.Q.put(next_url)
             if (next_url is None or next_url == '') and int(page_index) != 10:
                 self.Q.put('下一页链接获取失败，程序退出')
             elif page_index is None or page_index == '':
