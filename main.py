@@ -1,7 +1,7 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QLabel, QRadioButton, QDesktopWidget, QHBoxLayout, QVBoxLayout, QFormLayout, QTabWidget, QTextBrowser
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import pyqtSlot, Qt
+from PyQt5.QtCore import pyqtSlot, Qt, QThread
 
 
 import scrapy
@@ -11,15 +11,15 @@ from AmazonSpiders.spiders.Commodities import CommoditiesSpider
 from AmazonSpiders.spiders.JPAmazon import JpamazonSpider
 from AmazonSpiders.spiders.USAmazon import UsamazonSpider
 from AmazonSpiders.log import read_log
-from multiprocessing import Process
+from multiprocessing import Process, Manager
 
 
-def start_crawl(search, website):
+def start_crawl(search, website, Q):
     process = CrawlerProcess(get_project_settings())
     if website == 'jp':
-        process.crawl(JpamazonSpider, search)
+        process.crawl(JpamazonSpider, search, Q)
     elif website == 'us':
-        process.crawl(UsamazonSpider, search)
+        process.crawl(UsamazonSpider, search, Q)
     else:
         return
     process.start()
@@ -57,6 +57,11 @@ class AppWindows(QWidget):
         # 设置窗口标题及图标
         self.setWindowTitle('Amazon商品信息分析')
         self.setWindowIcon(QIcon('icon.ico'))
+
+        self.Q = Manager().Queue()
+        self.p = None
+        self.log_thread = LogThread(self)
+
         # 设置窗口居中显示
         fg = self.frameGeometry()
         fg.moveCenter(QDesktopWidget().availableGeometry().center())
@@ -162,6 +167,12 @@ class AppWindows(QWidget):
         self.result_layout.addWidget(item1)
         self.result_layout.addWidget(item2)
 
+    def closeEvent(self, event):
+        if self.p:
+            self.p.terminate()
+        if self.log_thread:
+            self.log_thread.terminate()
+
     @pyqtSlot()
     def __search(self):
         # 获取所要搜索的商品名称
@@ -170,16 +181,38 @@ class AppWindows(QWidget):
         website = 'jp' if self.jp_amazon.isChecked() == True else 'us'
         print('开始搜索{}:{}'.format(search, website))
         # start_crawl(search, website)
-        p = Process(target=start_crawl, args=(search, website))
-        p.start()
+        self.p = Process(target=start_crawl, args=(search, website, self.Q))
+        self.p.start()
         # https://blog.csdn.net/La_vie_est_belle/article/details/102539029
-        # 需要解决日志回调
-        # self.log_text.setText(read_log())
+        self.log_thread.start()
 
     @pyqtSlot()
     def __clean(self):
         self.search_editer.setText('')
         self.keywords_editer.setText('')
+        self.log_text.setText('')
+        for i in range(self.result_layout.count()):
+            self.result_layout.itemAt(i).widget().deleteLater()
+        pass
+
+
+class LogThread(QThread):
+    def __init__(self, window):
+        super(LogThread, self).__init__()
+        self.window = window
+
+    def run(self):
+        while True:
+            if not self.window.Q.empty():
+                text = self.window.Q.get()
+                self.window.log_text.append(text)
+
+                if '爬取结束' == text:
+                    print('结束日志进程')
+                    return
+
+                # 睡眠20毫秒，否则太快会导致闪退或者显示乱码
+                self.msleep(20)
         pass
 
 

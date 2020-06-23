@@ -41,3 +41,7 @@ class UsamazonSpider(scrapy.Spider):
         else:
             yield scrapy.Request(response.urljoin(next_url), callback=self.parse, dont_filter=True)
         pass
+
+    @staticmethod
+    def close(spider, reason):
+        spider.Q.put('爬取结束')

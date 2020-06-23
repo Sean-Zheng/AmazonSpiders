@@ -119,7 +119,8 @@ class RandomizeUserAgentMiddleware(UserAgentMiddleware):
 
     def process_request(self, request, spider):
         agent = random.choice(self.user_agent)
-        write_log('User-Agent：{}'.format(agent))
+        # write_log('User-Agent：{}'.format(agent))
+        spider.Q.put(agent)
         request.headers['User-Agent'] = agent
 
 
