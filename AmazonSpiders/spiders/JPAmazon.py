@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import scrapy
 from AmazonSpiders.items import AmazonspidersItem
-from AmazonSpiders.log import write_log, remove_log
+from urllib.request import unquote
 
 
 class JpamazonSpider(scrapy.Spider):
@@ -15,7 +15,7 @@ class JpamazonSpider(scrapy.Spider):
             'https://www.amazon.co.jp/s?k={}&__mk_ja_JP=カタカナ&ref=nb_sb_noss_2'.format(search_key)]
 
     def parse(self, response):
-        self.Q.put('开始爬取网址：{}'.format(response.url))
+        self.Q.put('开始爬取网址：{}'.format(unquote(response.url, 'utf-8')))
         commodity_list = response.xpath(
             "//div[@class='a-section a-spacing-medium']")
         page_index = response.xpath(

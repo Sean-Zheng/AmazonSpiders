@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import scrapy
 from AmazonSpiders.items import AmazonspidersItem
-from AmazonSpiders.log import write_log, remove_log
+from urllib.request import unquote
 
 
 class UsamazonSpider(scrapy.Spider):
@@ -15,9 +15,8 @@ class UsamazonSpider(scrapy.Spider):
             'https://www.amazon.com/s?k={}&ref=nb_sb_noss'.format(search_key)]
 
     def parse(self, response):
-        self.Q.put('开始爬取网址：{}'.format(response.url))
+        self.Q.put('开始爬取网址：{}'.format(unquote(response.url, 'utf-8')))
         commodity_xpath = '//div[@data-index]//div[@class="sg-col-inner"]/div[@class="a-section a-spacing-none"]//a[@class="a-link-normal a-text-normal"]'
-        write_log('开始爬取网址：{}'.format(response.url))
         commodity_list = response.xpath(commodity_xpath)
         page_index = response.xpath(
             "//li[@class='a-selected']/a/text()").get()

@@ -7,7 +7,6 @@
 
 from scrapy import signals
 from scrapy.downloadermiddlewares.useragent import UserAgentMiddleware
-from AmazonSpiders.log import write_log
 import random
 
 
