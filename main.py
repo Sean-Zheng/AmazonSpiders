@@ -1,9 +1,10 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QLabel, QRadioButton, QDesktopWidget, QHBoxLayout, QVBoxLayout, QFormLayout, QTabWidget, QTextBrowser
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import pyqtSlot, Qt, QThread
+from PyQt5.QtCore import pyqtSlot, Qt, QThread, pyqtSignal
 from json import loads
-
+from math import ceil
+import os
 import scrapy
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
@@ -23,16 +24,16 @@ def start_crawl(search, website, Q):
     process.start()
 
 
-def filter_results():  # keywords: list
+def filter_results(keywords: list):
     result_file = open('crawl.items', mode='r', encoding='utf-8')
     results = result_file.readlines()
     return_item = []
     for item in results:
         commodity = loads(item)
-        # for key in keywords:
-        #     if key not in commodity['name']:
-        #         continue
-        return_item.append(commodity)
+        for key in keywords:
+            if key not in commodity['name']:
+                break
+            return_item.append(commodity)
         pass
     result_file.close()
     return return_item
@@ -44,6 +45,7 @@ class Commodity(QWidget):
 
         main_layout = QHBoxLayout(self)
         name_label = QLabel()
+        name_label.setFixedSize(600, 30)
         name_label.setText('<a href="{}">{}</a>'.format(url, name))
         name_label.setOpenExternalLinks(True)
         name_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
@@ -53,18 +55,9 @@ class Commodity(QWidget):
         page_label.setOpenExternalLinks(True)
         page_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
 
-        # page_url_label = QLabel()
-        # page_url_label.setText('<a href="{}">{}</a>'.format(page_url))
-        # page_url_label.setOpenExternalLinks(True)
-        # page_url_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
-
-        # url_label = QLabel()
-        # url_label.setText('<a href="{}">{}</a>'.format(url))
-        # url_label.setOpenExternalLinks(True)
-        # url_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
         main_layout.addWidget(name_label)
         main_layout.addWidget(page_label)
-        # main_layout.addWidget(url_label)
+
         self.show()
     pass
 
@@ -75,6 +68,9 @@ class AppWindows(QWidget):
         # 设置窗口标题及图标
         self.setWindowTitle('Amazon商品信息分析')
         self.setWindowIcon(QIcon('icon.ico'))
+
+        self.current_page = 1
+        self.results = None
 
         self.Q = Manager().Queue()
         self.p = None
@@ -168,27 +164,48 @@ class AppWindows(QWidget):
 
     # 结果窗口控件
     def __init_result_widget(self):
+        self.tab = QWidget()
+        self.tab_layout = QVBoxLayout(self.tab)
         self.result_widget = QWidget()
+        self.page_widget = QWidget()
+        self.page_layout = QHBoxLayout(self.page_widget)
+
+        self.pre_btn = QPushButton('上一页')
+        self.pre_btn.clicked.connect(
+            lambda: self.__change_page('pre'))
+        self.current_page_label = QLabel('1')
+        self.next_btn = QPushButton('下一页')
+        self.next_btn.clicked.connect(
+            lambda: self.__change_page('next'))
+
         self.result_layout = QFormLayout(self.result_widget)
         self.result_layout.setFormAlignment(Qt.AlignTop)
+        self.tab_layout.addWidget(self.result_widget, alignment=Qt.AlignTop)
+        self.tab_layout.addWidget(self.page_widget, alignment=Qt.AlignBottom)
         # self.result_text = QTextBrowser(self.result_widget)
         # self.result_text.resize(793, 650)
         # setStyleSheet("QTextBrowser{border-width:0;border-style:outset}");
-        # self.result_text.setText('sdfadsfdsa')
-        self.show_widget.addTab(self.result_widget, "结果")
+        self.show_widget.addTab(self.tab, "结果")
 
-        results = filter_results()
+        self.page_layout.addWidget(self.pre_btn, alignment=Qt.AlignCenter)
+        self.page_layout.addWidget(
+            self.current_page_label, alignment=Qt.AlignCenter)
+        self.page_layout.addWidget(self.next_btn, alignment=Qt.AlignCenter)
 
-        for i in range(0, len(results), 1):
-            commodity = Commodity(
-                results[i]['name'], results[i]['page_index'], results[i]['page_link'], results[i]['commodity_link'])
-            self.result_layout.addWidget(commodity)
+        # self.results = filter_results(iPhone SE;Qi充電;第2世代;米軍MIL規格取得
+        #     ['iPhone SE', 'Qi充電', '第2世代', '米軍MIL規格取得'])
 
     def closeEvent(self, event):
         if self.p:
             self.p.terminate()
         if self.log_thread:
             self.log_thread.terminate()
+
+    def show_result(self, show):
+        for item in show:
+            commodity = Commodity(
+                item['name'], item['page_index'], item['page_link'], item['commodity_link'])
+            self.result_layout.addWidget(commodity)
 
     @pyqtSlot()
     def __search(self):
@@ -202,6 +219,7 @@ class AppWindows(QWidget):
         self.p = Process(target=start_crawl, args=(search, website, self.Q))
         self.p.start()
         # https://blog.csdn.net/La_vie_est_belle/article/details/102539029
+        self.log_thread.signal.connect(self.show_result)
         self.log_thread.start()
 
     @pyqtSlot()
@@ -209,12 +227,36 @@ class AppWindows(QWidget):
         self.search_editer.setText('')
         self.keywords_editer.setText('')
         self.log_text.setText('')
+        if os.path.exists('crawl.items'):
+            os.remove('crawl.items')
+        self.current_page = 1
         for i in range(self.result_layout.count()):
             self.result_layout.itemAt(i).widget().deleteLater()
         pass
 
+    @pyqtSlot()
+    def __change_page(self, action):
+        if action == 'pre' and self.current_page > 1:
+            self.current_page = self.current_page - 1
+        elif action == 'pre' and self.current_page <= 1:
+            return
+        elif action == 'next' and self.current_page < ceil(len(self.results)/10):
+            self.current_page = self.current_page+1
+        else:
+            return
+        self.current_page_label.setText(str(self.current_page))
+        for i in range(self.result_layout.count()):
+            self.result_layout.itemAt(i).widget().deleteLater()
+        show = self.results[(self.current_page-1)*10:self.current_page*10]
+        for item in show:
+            commodity = Commodity(
+                item['name'], item['page_index'], item['page_link'], item['commodity_link'])
+            self.result_layout.addWidget(commodity)
+
 
 class LogThread(QThread):
+    signal = pyqtSignal(list)
+
     def __init__(self, window):
         super(LogThread, self).__init__()
         self.window = window
@@ -227,23 +269,10 @@ class LogThread(QThread):
 
                 if '爬取结束' == text:
                     # 开始写入结果
-                    # item1 = Commodity(
-                    #     'asdf', '111', 'https://www.baidu.com', 'https://www.baidu.com')
-                    # item2 = Commodity(
-                    #     'asdf', '111', 'https://www.baidu.com', 'https://www.baidu.com')
-
-                    # self.result_layout.addWidget(item1)
-                    # self.result_layout.addWidget(item2)
-                    # results = filter_results(self.window.keywords)
-                    # # for item in results:
-                    # #     commodity = Commodity(
-                    # #         item['name'], item['page_index'], item['page_link'], item['commodity_link'])
-                    # #     self.window.result_layout.addWidget(commodity)
-
-                    # for i in range(0, 10, 1):
-                    #     commodity = Commodity(
-                    #         results[i]['name'], results[i]['page_index'], results[i]['page_link'], results[i]['commodity_link'])
-                    #     self.window.result_layout.addWidget(commodity)
+                    self.window.results = filter_results(self.window.keywords)
+                    show = self.window.results[(self.window.current_page-1)
+                                               * 10:self.window.current_page*10]
+                    self.signal.emit(show)
                     return
 
                 # 睡眠20毫秒，否则太快会导致闪退或者显示乱码
