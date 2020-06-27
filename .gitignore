@@ -2,3 +2,6 @@
 *.log
 *.items
 *.pyc
+*.spec
+/build
+/dist
