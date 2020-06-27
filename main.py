@@ -10,7 +10,10 @@ from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 from AmazonSpiders.spiders.JPAmazon import JpamazonSpider
 from AmazonSpiders.spiders.USAmazon import UsamazonSpider
-from multiprocessing import Process, Manager
+import AmazonSpiders.settings
+import AmazonSpiders.middlewares
+import AmazonSpiders.pipelines
+from multiprocessing import Process, Manager, freeze_support
 
 
 def start_crawl(search, website, Q):
@@ -214,8 +217,7 @@ class AppWindows(QWidget):
         self.keywords = self.keywords_editer.text().split(';')
         # 判断选择的网址
         website = 'jp' if self.jp_amazon.isChecked() == True else 'us'
-        print('开始搜索{}:{}'.format(search, website))
-        # start_crawl(search, website)
+        self.Q.put('开始爬取：{}'.format(search))
         self.p = Process(target=start_crawl, args=(search, website, self.Q))
         self.p.start()
         # https://blog.csdn.net/La_vie_est_belle/article/details/102539029
@@ -244,7 +246,8 @@ class AppWindows(QWidget):
             self.current_page = self.current_page+1
         else:
             return
-        self.current_page_label.setText(str(self.current_page))
+        self.current_page_label.setText(
+            '{}/{}'.format(str(self.current_page), ceil(len(self.results)/10)))
         for i in range(self.result_layout.count()):
             self.result_layout.itemAt(i).widget().deleteLater()
         show = self.results[(self.current_page-1)*10:self.current_page*10]
@@ -281,6 +284,7 @@ class LogThread(QThread):
 
 
 if __name__ == "__main__":
+    freeze_support()
     app = QApplication(sys.argv)
     window = AppWindows()
     sys.exit(app.exec_())
