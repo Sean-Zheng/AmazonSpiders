@@ -54,3 +54,4 @@ class JpamazonSpider(scrapy.Spider):
     def close(spider, reason):
         spider.Q.put('\n')
         spider.Q.put('爬取结束,请切换至结果页查看结果')
+        spider.Q.put('OVER')

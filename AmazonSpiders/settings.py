@@ -106,7 +106,7 @@ COOKIES_ENABLED = False
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 DOWNLOADER_MIDDLEWARES = {
     'scrapy.downloadermiddleware.useragent.UserAgentMiddleware': None,
-    'AmazonSpiders.middlewares.ShadowsocksMiddleware': 543,
+    # 'AmazonSpiders.middlewares.ShadowsocksMiddleware': 543,#打包时取消注释
     'AmazonSpiders.middlewares.RandomizeUserAgentMiddleware': 500
     #    'AmazonSpiders.middlewares.AmazonspidersDownloaderMiddleware': 543,
 }

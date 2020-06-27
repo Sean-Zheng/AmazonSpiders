@@ -213,6 +213,12 @@ class AppWindows(QWidget):
     @pyqtSlot()
     def __search(self):
         # 获取所要搜索的商品名称
+        self.current_page = 1
+        self.current_page_label.setText('')
+        self.log_text.setText('')
+        for i in range(self.result_layout.count()):
+            self.result_layout.itemAt(i).widget().deleteLater()
+
         search = self.search_editer.text()
         self.keywords = self.keywords_editer.text().split(';')
         # 判断选择的网址
@@ -247,7 +253,7 @@ class AppWindows(QWidget):
         else:
             return
         self.current_page_label.setText(
-            '{}/{}'.format(str(self.current_page), ceil(len(self.results)/10)))
+            '{}/{}'.format(str(self.current_page), str(ceil(len(self.results)/10))))
         for i in range(self.result_layout.count()):
             self.result_layout.itemAt(i).widget().deleteLater()
         show = self.results[(self.current_page-1)*10:self.current_page*10]
@@ -268,15 +274,16 @@ class LogThread(QThread):
         while True:
             if not self.window.Q.empty():
                 text = self.window.Q.get()
-                self.window.log_text.append(text)
-
-                if '爬取结束' == text:
-                    # 开始写入结果
+                if 'OVER' == text:
                     self.window.results = filter_results(self.window.keywords)
+                    print(len(self.window.results))
                     show = self.window.results[(self.window.current_page-1)
                                                * 10:self.window.current_page*10]
+                    self.window.current_page_label.setText(
+                        '{}/{}'.format(str(self.window.current_page), str(ceil(len(self.window.results)/10))))
                     self.signal.emit(show)
                     return
+                self.window.log_text.append(text)
 
                 # 睡眠20毫秒，否则太快会导致闪退或者显示乱码
                 self.msleep(20)
