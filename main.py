@@ -276,7 +276,6 @@ class LogThread(QThread):
                 text = self.window.Q.get()
                 if 'OVER' == text:
                     self.window.results = filter_results(self.window.keywords)
-                    print(len(self.window.results))
                     show = self.window.results[(self.window.current_page-1)
                                                * 10:self.window.current_page*10]
                     self.window.current_page_label.setText(

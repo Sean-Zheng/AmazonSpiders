@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import datetime
 # Scrapy settings for AmazonSpiders project
 #
 # For simplicity, this file contains only settings considered important or
@@ -87,6 +87,9 @@ DOWNLOAD_DELAY = 2
 # Disable cookies (enabled by default)
 COOKIES_ENABLED = False
 
+LOG_FILE = './crawl{}.log'.format(datetime.datetime.strftime(
+    datetime.datetime.now(), '%Y-%m-%d-%H-%M-%S'))
+
 # Disable Telnet Console (enabled by default)
 #TELNETCONSOLE_ENABLED = False
 
@@ -106,7 +109,7 @@ COOKIES_ENABLED = False
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 DOWNLOADER_MIDDLEWARES = {
     'scrapy.downloadermiddleware.useragent.UserAgentMiddleware': None,
-    # 'AmazonSpiders.middlewares.ShadowsocksMiddleware': 543,#打包时取消注释
+    'AmazonSpiders.middlewares.ShadowsocksMiddleware': 543,  # 打包时注释
     'AmazonSpiders.middlewares.RandomizeUserAgentMiddleware': 500
     #    'AmazonSpiders.middlewares.AmazonspidersDownloaderMiddleware': 543,
 }
