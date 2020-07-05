@@ -27,7 +27,7 @@ def start_crawl(search, website, Q):
     process.start()
 
 
-def filter_results(keywords: list):
+def filter_results(keywords: list,start:int,end:int):
     result_file = open('crawl.items', mode='r', encoding='utf-8')
     results = result_file.readlines()
     return_item = []
@@ -39,7 +39,22 @@ def filter_results(keywords: list):
             return_item.append(commodity)
         pass
     result_file.close()
-    return return_item
+    return return_item[start:end]
+
+
+def getResultsCount(keywords: list):
+    result_file = open('crawl.items', mode='r', encoding='utf-8')
+    results = result_file.readlines()
+    return_item = []
+    for item in results:
+        commodity = loads(item)
+        for key in keywords:
+            if key not in commodity['name']:
+                break
+            return_item.append(commodity)
+        pass
+    result_file.close()
+    return len(return_item)
 
 
 class Commodity(QWidget):
@@ -74,6 +89,7 @@ class AppWindows(QWidget):
 
         self.current_page = 1
         self.results = None
+        self.len=None
 
         self.Q = Manager().Queue()
         self.p = None
@@ -85,6 +101,7 @@ class AppWindows(QWidget):
         self.move(fg.topLeft())
         # 固定窗口大小
         self.setFixedSize(1200, 675)
+        # self.setBaseSize(1200, 675)
         # 添加水平主布局
         self.main_layout = QHBoxLayout(self)
         # 设置四周margin
@@ -204,7 +221,9 @@ class AppWindows(QWidget):
         if self.log_thread:
             self.log_thread.terminate()
 
-    def show_result(self, show):
+    def show_result(self, show,count):
+        self.len=count
+        self.current_page_label.setText('{}/{}'.format(str(self.current_page), str(ceil(self.len/10))))
         for item in show:
             commodity = Commodity(
                 item['name'], item['page_index'], item['page_link'], item['commodity_link'])
@@ -228,6 +247,7 @@ class AppWindows(QWidget):
         self.p.start()
         # https://blog.csdn.net/La_vie_est_belle/article/details/102539029
         self.log_thread.signal.connect(self.show_result)
+        self.log_thread.log_text_signal.connect(lambda text: self.log_text.append(text))
         self.log_thread.start()
 
     @pyqtSlot()
@@ -248,15 +268,18 @@ class AppWindows(QWidget):
             self.current_page = self.current_page - 1
         elif action == 'pre' and self.current_page <= 1:
             return
-        elif action == 'next' and self.current_page < ceil(len(self.results)/10):
+        elif action == 'next' and self.current_page < ceil(self.len/10):
             self.current_page = self.current_page+1
         else:
             return
-        self.current_page_label.setText(
-            '{}/{}'.format(str(self.current_page), str(ceil(len(self.results)/10))))
+        # self.current_page_label.setText(
+        #     '{}/{}'.format(str(self.current_page), str(ceil(self.len/10))))
+        self.current_page_label.setText('{}/{}'.format(str(self.current_page), str(ceil(self.len/10))))
         for i in range(self.result_layout.count()):
             self.result_layout.itemAt(i).widget().deleteLater()
-        show = self.results[(self.current_page-1)*10:self.current_page*10]
+        start=(self.current_page-1)*10
+        end=self.current_page*10
+        show =filter_results(self.keywords,start,end)
         for item in show:
             commodity = Commodity(
                 item['name'], item['page_index'], item['page_link'], item['commodity_link'])
@@ -264,7 +287,8 @@ class AppWindows(QWidget):
 
 
 class LogThread(QThread):
-    signal = pyqtSignal(list)
+    signal = pyqtSignal(list,int)
+    log_text_signal=pyqtSignal(str)
 
     def __init__(self, window):
         super(LogThread, self).__init__()
@@ -275,17 +299,19 @@ class LogThread(QThread):
             if not self.window.Q.empty():
                 text = self.window.Q.get()
                 if 'OVER' == text:
-                    self.window.results = filter_results(self.window.keywords)
-                    show = self.window.results[(self.window.current_page-1)
-                                               * 10:self.window.current_page*10]
-                    self.window.current_page_label.setText(
-                        '{}/{}'.format(str(self.window.current_page), str(ceil(len(self.window.results)/10))))
-                    self.signal.emit(show)
+                    start=(self.window.current_page-1)* 10
+                    end=self.window.current_page*10
+                    show = filter_results(self.window.keywords,start,end)
+                    # self.window.len=getResultsCount(self.window.keywords)
+                    # self.window.current_page_label.setText(
+                    #     '{}/{}'.format(str(self.window.current_page), str(ceil(self.window.len/10))))
+                    self.signal.emit(show,getResultsCount(self.window.keywords))
                     return
-                self.window.log_text.append(text)
+                self.log_text_signal.emit(text)
+                # self.window.log_text.append(text)
 
                 # 睡眠20毫秒，否则太快会导致闪退或者显示乱码
-                self.msleep(20)
+                self.msleep(500)
         pass
 
 
