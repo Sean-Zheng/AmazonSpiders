@@ -87,8 +87,8 @@ DOWNLOAD_DELAY = 2
 # Disable cookies (enabled by default)
 COOKIES_ENABLED = False
 
-LOG_FILE = './crawl{}.log'.format(datetime.datetime.strftime(
-    datetime.datetime.now(), '%Y-%m-%d-%H-%M-%S'))
+# LOG_FILE = './crawl{}.log'.format(datetime.datetime.strftime(
+#     datetime.datetime.now(), '%Y-%m-%d-%H-%M-%S'))
 
 # Disable Telnet Console (enabled by default)
 #TELNETCONSOLE_ENABLED = False
@@ -122,9 +122,9 @@ DOWNLOADER_MIDDLEWARES = {
 
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-ITEM_PIPELINES = {
-    'AmazonSpiders.pipelines.AmazonspidersPipeline': 300,
-}
+# ITEM_PIPELINES = {
+# 'AmazonSpiders.pipelines.AmazonspidersPipeline': 300,
+# }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
